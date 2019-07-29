@@ -25,7 +25,7 @@ All documentation is now avalible on docs.microsoft.com and can be accessed via 
 *NOTE: Certain recommendations in this paper may result in increased data, network, or compute resource usage in Azure, and may increase a customer’s Azure license or subscription costs.*
 *The solution in this document is intended as a reference architecture pilot and should not be used as-is for production purposes.  Achieving PCI compliance requires that customers consult with their Qualified Security Assessor.*
 
-*This solution was developed cooperatively by Microsoft and Avyan consulting.*
+*This solution was developed cooperatively by Microsoft*
 
 
 ### Authors of the document 
