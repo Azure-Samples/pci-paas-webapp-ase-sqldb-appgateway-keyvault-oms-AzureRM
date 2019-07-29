@@ -1,0 +1,355 @@
+﻿{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "_artifactsLocation": {
+      "type": "string",
+      "defaultValue": "https://raw.githubusercontent.com/Azure/pci-paas-webapp-ase-sqldb-appgateway-keyvault-oms/master",
+      "metadata": {
+        "description": "Publicly accessible location of all deployment artifacts."
+      }
+    },
+    "_artifactsLocationSasToken": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Reserved for deploying using Visual Studio. Please keep it as an empty string"
+      }
+    },
+    "sslORnon_ssl": {
+      "type": "string",
+      "allowedValues": [
+        "ssl",
+        "non-ssl"
+      ]
+    },
+    "certData": {
+      "type": "securestring",
+      "defaultValue": "null",
+      "metadata": {
+        "description": "Base-64 encoded form of the .pfx file"
+      }
+    },
+    "certPassword": {
+      "type": "securestring",
+      "defaultValue": "null",
+      "metadata": {
+        "description": "Password for .pfx certificate"
+      }
+    },
+    "aseCertData": {
+      "type": "string",
+      "metadata": {
+        "description": "Base-64 encoded form of the .cer file"
+      }
+    },
+    "asePfxBlobString": {
+      "type": "string",
+      "metadata": {
+        "description": "Base-64 encoded form of the .pfx file"
+      }
+    },
+    "asePfxPassword": {
+      "type": "string",
+      "metadata": {
+        "description": "Password for .pfx certificate"
+      }
+    },
+    "aseCertThumbprint": {
+      "type": "string",
+      "metadata": {
+        "description": "Certificate Thumbprint"
+      }
+    },
+    "bastionHostAdministratorUserName": {
+      "type": "string",
+      "defaultValue": "bastionadmin",
+      "metadata": {
+        "description": "The user name to use for the bastion host VM administrator."
+      }
+    },
+    "bastionHostAdministratorPassword": {
+      "type": "securestring",
+      "metadata": {
+        "description": "The password to use for the bastion host VM administrator."
+      }
+    },
+    "sqlAdministratorLoginUserName": {
+      "type": "string",
+      "defaultValue": "sqladmin",
+      "metadata": {
+        "description": "The user name to use for the database server administrator."
+      }
+    },
+    "sqlAdministratorLoginPassword": {
+      "type": "securestring",
+      "metadata": {
+        "description": "The password to use for the database server administrator."
+      }
+    },
+    "sqlThreatDetectionAlertEmailAddress": {
+      "type": "string",
+      "metadata": {
+        "description": "Provide Email Address to send Sql Threat Detection Alerts"
+      }
+    },
+    "automationAccountName": {
+      "type": "string",
+      "metadata": {
+        "description": "Provide the name of an existing Automation Account with SPN."
+      }
+    },
+    "customHostName": {
+      "type": "string",
+      "defaultValue": "azurewebsites.net",
+      "metadata": {
+        "description": "Provide the Custom Host Name."
+      }
+    },
+    "azureAdApplicationClientId": {
+      "type": "string",
+      "metadata": {
+        "description": "Provide Azure AD Application Client ID.Get it from Pre Deployment script output"
+      }
+    },
+    "azureAdApplicationClientSecret": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Provide Azure AD Application Client Secret.Get it from Pre Deployment script output"
+      }
+    },
+    "azureAdApplicationObjectId": {
+      "type": "string",
+      "metadata": {
+        "description": "Provide Azure AD Application Object ID.Get it from Pre Deployment script output"
+      }
+    },
+    "sqlAdAdminUserName": {
+      "type": "string",
+      "metadata": {
+        "description": "The AD User Name to use for the application's connections to the database server."
+      }
+    },
+    "sqlAdAdminUserPassword": {
+      "type": "securestring",
+      "metadata": {
+        "description": "The AD User password to use for the application's connections to the database server."
+      }
+    },
+    "pricingTier": {
+      "type": "string",
+      "allowedValues": [
+        "I1",
+        "I2",
+        "I3"
+      ],
+      "defaultValue": "I1",
+      "metadata": {
+        "description": "Defines pricing tier for workers: I1 = Isolated 1, I2 = Isolated 2, I3 = Isolated 3."
+      }
+    },
+    "capacity": {
+      "type": "int",
+      "defaultValue": 1,
+      "metadata": {
+        "description": "Defines the number of instances that will be allocated to the app service plan."
+      }
+    },
+     "kind":{
+        "type": "string",
+        "defaultValue": "ASEV2"
+    }
+  },
+  "variables": {
+    "storageAccountDiagnostics": "[concat('stgdiag', uniquestring(resourceGroup().id))]",
+    "webPackageName": "ContosoWebStore.zip",
+    "publicIpAddressName": "publicIp-AppGateway",
+    "aseNsgGroupName": "nsg-ASE",
+    "wafNsgGroupName": "nsg-WAF-Gateway",
+    "bastionNsgGroupName": "nsg-bastionVM",
+    "wafSubnetName": "subnet-WAF-Gateway",
+    "bastionSubnetName": "subnet-Bastion",
+    "asesubnetName": "subnet-ASE",
+    "addressPrefix": "10.0.0.0/16",
+    "wafSubnetAddressPrefix": "10.0.1.0/24",
+    "bastionSubnetAddressPrefix": "10.0.2.0/24",
+    "aseSubnetBaseAddress": "10.0.3",
+    "aseSubnetAddressPrefix": "[concat(variables('aseSubnetBaseAddress'),'.0','/24')]",
+    "aseBackendVirtualIp": "[concat(variables('aseSubnetBaseAddress'),'.11')]",
+    "aseName": "[concat('ase-PCI-', uniqueString(resourceGroup().id))]",
+    "aseLocation": "East US",
+    "virtualNetworkName": "[substring(concat('vNet-pci-paas-', uniquestring(resourceGroup().id)),0,22)]",
+    "keyVaultName": "[substring(concat('kv-pcisamples','-',uniquestring(resourceGroup().id)),0,22)]",
+    "ipSslAddressCount": 0,
+    "frontEndSize": "Medium",
+    "frontEndCount": 2,
+    "skuName": "WAF_Medium",
+    "capacity": 1,
+    "retentionPolicy": 2,
+    "automationRegion": "East US 2",
+    "omsRegion": "East US",
+    "sqlFirewallIps": {
+      "startIp": "[concat(variables('aseSubnetBaseAddress'), '.1')]",
+      "endIp": "[concat(variables('aseSubnetBaseAddress'), '.255')]"
+    },
+    "webSiteName": "[concat('webapp', '-pciwebapp')]",
+    "artifactsFolder": "artifacts",
+    "packageURI": "[concat(parameters('_artifactsLocation'), '/', variables('artifactsFolder'), '/', variables('webPackageName'), parameters('_artifactsLocationSasToken'))]",
+    "nestedTemplateFolder": "nested",
+    "sqlServerTemplateFileName": "sqlserverdeploydemo.json",
+    "commonTemplateFileName": "common.json",
+    "omsTemplateFileName": "omsworkspace.json",        
+    "omsWorkspaceName": "[concat('oms-WS-pci-paas-', uniqueString(resourceGroup().id))]",
+    "tagValues": {
+      "layer": "dummy",
+      "environment": "Pilot",
+      "projectname": "PCI PaaS Reference Architecture",
+      "dataprofile": "PCI-CCTD (Credit Card Transaction Data)",
+      "department": "IT",
+      "businessUnit": "Cloud - IT COE"
+    }
+  },
+  "resources": [
+    {
+      "apiVersion": "2017-05-10",
+      "name": "d0053ce5-a245-4f3c-baaf-e3e1343a8794",
+      "comments": "GUID for tracking Contoso Web Store demo deployments intended for PCI-DSS PaaS.",
+      "type": "Microsoft.Resources/deployments",
+      "properties": {
+          "mode": "Incremental",
+          "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+                      "contentVersion": "1.0.0.0",
+                      "resources": []
+              }
+          }
+    },
+    {
+      "name": "deploy-CommonInfrastructure",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2016-02-01",
+      "dependsOn": [
+        "[concat('Microsoft.Resources/deployments', '/' , 'deploy-OMSWorkspaceSolutions')]"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[concat(parameters('_artifactsLocation'), '/', variables('nestedTemplateFolder'), '/', variables('commonTemplateFileName'), parameters('_artifactsLocationSasToken'))]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "keyVaultName": {
+            "value": "[variables('keyVaultName')]"
+          },
+          "ApplicationObjectId": {
+            "value": "[parameters('azureAdApplicationObjectId')]"
+          },
+          "applicationClientId": {
+            "value": "[parameters('azureAdApplicationClientId')]"
+          },          
+          "storageAccountName": {
+            "value": "[variables('storageAccountDiagnostics')]"
+          },
+          "omsWorkspaceName": {
+            "value": "[variables('omsWorkspaceName')]"
+          },
+          "tagValues": {
+            "value": "[variables('tagValues')]"
+          },
+          "retentionPolicy": {
+            "value": "[variables('retentionPolicy')]"
+          }
+        }
+      }
+    },
+	    {
+      "name": "deploy-OMSWorkspaceSolutions",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2015-01-01",
+      "dependsOn": [],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[concat(parameters('_artifactsLocation'), '/', variables('nestedTemplateFolder'), '/', variables('omsTemplateFileName'), parameters('_artifactsLocationSasToken'))]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "workspaceName": {
+            "value": "[variables('omsWorkspaceName')]"
+          },
+          "location": {
+            "value": "[variables('omsRegion')]"
+          },
+          "serviceTier": {
+            "value": "PerGB2018"
+          },
+          "resourcegroupName": {
+            "value": "[resourceGroup().name]"
+          },
+          "subscriptionId": {
+            "value": "[subscription().subscriptionId]"
+          },
+          "solutionTypes": {
+            "value": [
+              "AzureNSGAnalytics",
+              "AzureAppGatewayAnalytics",
+              "KeyVaultAnalytics",
+              "AzureActivity",
+              "ChangeTracking",
+              "ApplicationInsights",
+              "ServiceMap",
+              "Security",
+              "AntiMalware",
+              "Updates",
+              "AzureWebAppsAnalytics",
+              "AzureSQLAnalytics"
+            ]
+          },
+          "tagValues": {
+            "value": "[variables('tagValues')]"
+          }
+        }
+      }
+    },
+    {
+      "name": "deploy-SQLServerSQLDb",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2016-02-01",
+      "dependsOn": [
+        "[concat('Microsoft.Resources/deployments', '/' , 'deploy-CommonInfrastructure')]"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[concat(parameters('_artifactsLocation'), '/', variables('nestedTemplateFolder'), '/', variables('sqlServerTemplateFileName'), parameters('_artifactsLocationSasToken'))]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "administratorLogin": {
+            "value": "[parameters('sqlAdministratorLoginUserName')]"
+          },
+          "administratorLoginPassword": {
+            "value": "[parameters('sqlAdministratorLoginPassword')]"
+          },
+          "tagValues": {
+            "value": "[variables('tagValues')]"
+          },
+          "storageAccountDiagnostics": {
+            "value": "[variables('storageAccountDiagnostics')]"
+          },
+          "firewallIPs": {
+            "value": "[variables('sqlFirewallIps')]"
+          },
+          "emailAddresses": {
+            "value": "[parameters('sqlThreatDetectionAlertEmailAddress')]"
+          },
+          "retentionPolicy": {
+            "value": "[variables('retentionPolicy')]"
+          }
+        }
+      }
+    }
+  ],
+  "outputs": {
+  }
+}
