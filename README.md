@@ -30,8 +30,7 @@ All documentation is now avalible on docs.microsoft.com and can be accessed via 
 
 ### Authors of the document 
 
-* *Frank Simorjay (Microsoft)*  
-* *Gururaj Pandurangi (Avyan Consulting)*
+* *Feroskhan Hasenkhan (Microsoft)*
 
 
 
