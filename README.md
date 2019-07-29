@@ -17,7 +17,7 @@ All documentation is now avalible on docs.microsoft.com and can be accessed via 
 # ACKNOWLEDGMENTS and DISCLAIMER
 
 
-*June 2017*
+*July 2019*
 
 *This document is for informational purposes only. MICROSOFT AND AVYAN MAKE NO WARRANTIES, EXPRESS, IMPLIED, OR STATUTORY, AS TO THE INFORMATION IN THIS DOCUMENT. This document is provided “as-is.” Information and views expressed in this document, including URL and other Internet website references, may change without notice. Customers reading this document bear the risk of using it.*
 *This document does not provide customers with any legal rights to any intellectual property in any Microsoft or Avyan product or solutions.* 
