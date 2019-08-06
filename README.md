@@ -9,10 +9,23 @@ The Azure blueprint solution is intended to simplify azure adoption, showcase co
 
 
 ## Documentation
-All documentation is now avalible on docs.microsoft.com and can be accessed via http://aka.ms/pciblueprint
+All documentation is now avalible on docs.microsoft.com and can be accessed via https://docs.microsoft.com/en-us/azure/security/develop/
+
+## Prerequisites
+Install Powershell 5.2 version to execute the above scripts.
+Install VS 2019 to create the web app.
+Install Git on your system. Git is used to clone the source code locally.
+
+## Deploy this solution
+This Azure Security and Compliance Blueprint Automation is comprised of JSON configuration files and PowerShell scripts that are handled by Azure Resource Manager's API service to deploy resources within Azure. Detailed deployment instructions are available here.
 
 
+1. Review 0-Setup-AdministrativeAccountAndPermission.md and run the provided commands.
 
+2. Deploy a test solution with Contoso sample data or pilot an initial production environment.
+
+      1A-ContosoWebStoreDemoAzureResources.ps1
+          This script deploys Azure resources for a demonstration of a webstore using Contoso sample data.
 
 # ACKNOWLEDGMENTS and DISCLAIMER
 
